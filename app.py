@@ -9,18 +9,9 @@ import requests
 MODEL_PATH = "horse_model.h5"
 MODEL_URL = "https://huggingface.co/Zam09ash/kuda-model-dataset/resolve/main/horse_model.h5"
 
-IMG_SIZE = (224, 224)
-
-# Flask app
-app = Flask(__name__)
-
-# Global variable model
-# model = None
-
-# Load model (tanpa compile untuk hemat memori saat deploy)
+# Load model sekali saat app start
 model = load_model(MODEL_PATH, compile=False)
 
-# Label map
 label_map = {
     "01": "Akhal-Teke",
     "02": "Appaloosa",
@@ -30,29 +21,12 @@ label_map = {
     "06": "Arabian",
     "07": "Friesian"
 }
+
 labels = list(label_map.values())
+IMG_SIZE = (224, 224)
 
-# Lazy load model
-def get_model():
-    global model
-    if model is None:
-        # Download model jika belum ada
-        if not os.path.exists(MODEL_PATH):
-            print("Downloading model from HuggingFace...")
-            with requests.get(MODEL_URL, stream=True) as r:
-                r.raise_for_status()
-                with open(MODEL_PATH, "wb") as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        if chunk:
-                            f.write(chunk)
-            print("Model downloaded!")
+app = Flask(__name__)
 
-        print("Loading model...")
-        model = load_model(MODEL_PATH)
-        print("Model loaded!")
-    return model
-
-# Predict endpoint
 @app.route('/predict', methods=['POST'])
 def predict():
     if 'image' not in request.files:
@@ -64,8 +38,7 @@ def predict():
     img = img_to_array(img) / 255.0
     img = np.expand_dims(img, axis=0)
 
-    model_instance = get_model()
-    pred = model_instance.predict(img)
+    pred = model.predict(img)
     idx = np.argmax(pred)
 
     return jsonify({
@@ -73,7 +46,8 @@ def predict():
         "confidence": float(pred[0][idx])
     })
 
-# Run
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
+
