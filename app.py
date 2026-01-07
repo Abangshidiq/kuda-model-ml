@@ -8,6 +8,8 @@ import numpy as np
 MODEL_PATH = "horse_model.h5"
 MODEL_URL = "https://huggingface.co/Zam09ash/kuda-model-dataset/resolve/main/horse_model.h5"
 
+print("Starting app...")
+
 if not os.path.exists(MODEL_PATH):
     print("Downloading model...")
     with requests.get(MODEL_URL, stream=True) as r:
