@@ -15,9 +15,10 @@ IMG_SIZE = (224, 224)
 app = Flask(__name__)
 
 # Global variable model
-model = None
+# model = None
 
-
+# Load model (tanpa compile untuk hemat memori saat deploy)
+model = load_model(MODEL_PATH, compile=False)
 
 # Label map
 label_map = {
