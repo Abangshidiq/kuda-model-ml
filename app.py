@@ -1,17 +1,20 @@
+# app.py
 import os
 from io import BytesIO
 from flask import Flask, request, jsonify
-from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 import numpy as np
-from huggingface_hub import hf_hub_download
+import tensorflow as tf
 
-MODEL_FILENAME = "horse_model.h5"
-MODEL_REPO = "Zam09ash/kuda-model-dataset"
-
-model = None  # jangan load di init
+# ==========================
+# Konfigurasi Model
+# ==========================
+MODEL_PATH = "horse_model.tflite"  # File TFLite
 IMG_SIZE = (224, 224)
 
+# ==========================
+# Label Map
+# ==========================
 label_map = {
     "01": "Akhal-Teke",
     "02": "Appaloosa",
@@ -23,41 +26,48 @@ label_map = {
 }
 labels = list(label_map.values())
 
-app = Flask(__name__)
+# ==========================
+# Load TFLite Interpreter
+# ==========================
+interpreter = tf.lite.Interpreter(model_path=MODEL_PATH)
+interpreter.allocate_tensors()
 
-def get_model():
-    global model
-    if model is None:
-        # Download dari HuggingFace jika belum ada
-        if not os.path.exists(MODEL_FILENAME):
-            print("Downloading model from HuggingFace...")
-            MODEL_PATH = hf_hub_download(repo_id=MODEL_REPO, filename=MODEL_FILENAME)
-        else:
-            MODEL_PATH = MODEL_FILENAME
-        model = load_model(MODEL_PATH, compile=False)
-        print("Model loaded!")
-    return model
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+
+# ==========================
+# Flask App
+# ==========================
+app = Flask(__name__)
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    if 'image' not in request.files:
+    # Validasi file
+    if "image" not in request.files:
         return jsonify({"error": "No image found"}), 400
 
-    file = request.files['image']
+    file = request.files["image"]
     img_bytes = file.read()
+
+    # Preprocessing
     img = load_img(BytesIO(img_bytes), target_size=IMG_SIZE)
     img = img_to_array(img) / 255.0
-    img = np.expand_dims(img, axis=0)
+    img = np.expand_dims(img, axis=0).astype(np.float32)
 
-    model = get_model()
-    pred = model.predict(img)
-    idx = np.argmax(pred)
+    # Predict dengan TFLite
+    interpreter.set_tensor(input_details[0]['index'], img)
+    interpreter.invoke()
+    pred = interpreter.get_tensor(output_details[0]['index'])
+    idx = int(np.argmax(pred))
 
     return jsonify({
         "breed": labels[idx],
         "confidence": float(pred[0][idx])
     })
 
+# ==========================
+# Jalankan app
+# ==========================
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 5000))  # Railway biasanya pakai env PORT
     app.run(host="0.0.0.0", port=port)
