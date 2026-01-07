@@ -17,6 +17,8 @@ app = Flask(__name__)
 # Global variable model
 model = None
 
+
+
 # Label map
 label_map = {
     "01": "Akhal-Teke",
