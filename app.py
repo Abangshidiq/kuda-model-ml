@@ -8,6 +8,16 @@ import numpy as np
 MODEL_PATH = "horse_model.h5"
 MODEL_URL = "https://huggingface.co/Zam09ash/kuda-model-dataset/resolve/main/horse_model.h5"
 
+if not os.path.exists(MODEL_PATH):
+    print("Downloading model...")
+    with requests.get(MODEL_URL, stream=True) as r:
+        r.raise_for_status()
+        with open(MODEL_PATH, "wb") as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+    print("Downloaded model!")
+
 # Load model
 model = load_model(MODEL_PATH)
 
