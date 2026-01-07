@@ -6,6 +6,7 @@ from tensorflow.keras.preprocessing.image import load_img, img_to_array
 import numpy as np
 
 MODEL_PATH = "horse_model.h5"
+MODEL_URL = "https://huggingface.co/Zam09ash/kuda-model-dataset/resolve/main/horse_model.h5"
 
 # Load model
 model = load_model(MODEL_PATH)
