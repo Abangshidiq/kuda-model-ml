@@ -1,6 +1,6 @@
-flask
+Flask==3.1.2
 tensorflow
 numpy
-pillow
 requests
 gunicorn
+h5py
